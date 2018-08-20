@@ -1,7 +1,6 @@
 # Reimagining Pixel Art
 
-The program takes an image and returns a new picture based on the binary representation
-of each pixel in the original image.
+Given any image, a new picture is created based on the colors of each pixel in the original image. In the interest of speed and memory, any image larger than 256x256 pixels will be scaled down before creating the new image.
 
 for example:
 If you start with this image
@@ -11,3 +10,8 @@ If you start with this image
 You'll end up with an image that looks like this
 
 ![](images/hex_bad_smile.png)
+
+notice that both images are very similar
+
+
+**Django Project coming soon!**

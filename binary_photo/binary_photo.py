@@ -9,50 +9,68 @@ IMG_PATH = os.path.join(BASE_PATH, 'images')
 ROBOTO = os.path.join(BASE_PATH, 'fonts', 'Roboto', 'Roboto-Thin.ttf')
 SCALE = (35,10)
 
-img = Image.open(os.path.join(IMG_PATH, 'random.png'))
-img_width, img_height = img.size
-
-image_data = {}
-
-def convertBinary(number):
+def number_to_binary(number):
     return '{0:08b}'.format(number)
 
-def rgb2hex(r,g,b):
+def rgb_to_hex(rgb: tuple):
+    r, g, b = rgb
     hex = "#{:02x}{:02x}{:02x}".format(r,g,b)
     return hex
 
-# Steps to the process
-# get the RGB data in each pixel stored in a dictionary (x,y) key
-#convert those pixels into 8 bit binary numbers
-#create a new picture by addin the text of each row to a new img
-#reshape the new image to match the old image
+class Hex_Image():
+    def __init__(self, img: Image, scale=SCALE, rescale=True):
+        if rescale:
+            self.img = self.resize_img(img)
+        else:
+            self.img = img
+        self.scale = SCALE
+        self.img_width, self.img_height = self.img.size
+        self.img_data = self.get_img_data()
 
+    def resize_img(self, img):
+        w, h = img.size
+        if w > 256 or h > 256:
+            img.thumbnail((256, 256))
+        return img
 
-def hex_pixel_image(img_data: dict, coordinate):
-    color = img_data[coordinate]['rgb']
-    font = Font(color, ROBOTO, 10)
-    draw_img = Draw("RGB", SCALE, WHITE)
-    draw_img.text((0,0), img_data[coordinate]['hex'], font)
-    byte_img = draw_img.tobytes()
-    return Image.frombytes("RGB", size=draw_img.size, data=byte_img)
+    def append_image_data(self, image_data: dict, pixel_coordinates: tuple):
+        rgb = img.getpixel(pixel_coordinates)
+        text_hex = f'{rgb_to_hex(rgb)}'
+        image_data[pixel_coordinates] = {'rgb':rgb, 'hex': text_hex,}
+        hex_img = self.hex_pixel_image(image_data, pixel_coordinates)
+        image_data[pixel_coordinates]['img'] = hex_img
 
-for i in range(img_width):
-    for j in range(img_height):
-        # print(i,j)
-        r,g,b = img.getpixel((i, j))
-        text_hex = f'{rgb2hex(r,g,b)}'
-        image_data[(i,j)] ={'rgb':(r,g,b), 'hex':text_hex}
-        hex_img = hex_pixel_image(image_data, (i,j))
-        image_data[(i,j)]['img'] = hex_img
+    def hex_pixel_image(self, image_data: dict, pixel_coordinates: tuple):
+        color = image_data[pixel_coordinates]['rgb']
+        text = image_data[pixel_coordinates]['hex']
+        img = self.create_pixel_img(SCALE, text, 10, color)
+        return Image.frombytes("RGB", size=img.size, data=img.tobytes())
 
-width, height = image_data[(0,0)]['img'].size
-final_img = Image.new('RGB', (img_width*SCALE[0], img_height*SCALE[1]))
-for i in range(img_width):
-    for j in range(img_height):
-        img = image_data[(i,j)]['img']
-        box = (i*width, j*height)
-        final_img.paste(img, box)
+    def create_pixel_img(self, scale, text, font_size, font_color, background_color=WHITE):
+        font = Font(font_color, ROBOTO, font_size)
+        img = Draw('RGB', scale, background_color)
+        img.text((0,0), text, font)
+        return img
 
-# final_img.thumbnail((64,64))
-final_img.show()
-# .save(os.path.join(IMG_PATH, 'hex.png'))
+    def get_img_data(self):
+        image_data = {}
+        for i in range(self.img_width):
+            for j in range(self.img_height):
+                self.append_image_data(image_data, (i, j))
+        return image_data
+
+    def new_image(self):
+        width, height = self.img_data[(0,0)]['img'].size
+        new_img = Image.new('RGB', (self.img_width*self.scale[0],
+                                    self.img_height*self.scale[1]))
+        for i in range(self.img_width):
+            for j in range(self.img_height):
+                img = self.img_data[(i,j)]['img']
+                box = (i*width, j*height)
+                new_img.paste(img, box)
+        return new_img
+
+if __name__ == '__main__':
+    img = Image.open(os.path.join(IMG_PATH, 'random.png'))
+    hex_img = Hex_Image(img, rescale=False)
+    hex_img.new_image().show()

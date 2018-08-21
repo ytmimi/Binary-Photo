@@ -54,10 +54,10 @@ class Test_Negative_RGB:
     def test_negative_red(self, rgb_colors):
         assert negative_rgb(rgb_colors['red']) == (0, 255, 255)
 
-    def test_negative_red(self, rgb_colors):
+    def test_negative_green(self, rgb_colors):
         assert negative_rgb(rgb_colors['green']) == (255, 0, 255)
 
-    def test_negative_red(self, rgb_colors):
+    def test_negative_blue(self, rgb_colors):
         assert negative_rgb(rgb_colors['blue']) == (255, 255, 0)
 
 

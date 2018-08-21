@@ -1,6 +1,5 @@
 import os
-import numpy as np
-from PIL import Image, ImageColor
+from PIL import Image
 from aggdraw import Draw, Font
 
 WHITE = (255, 255, 255)
@@ -10,12 +9,12 @@ ROBOTO = os.path.join(BASE_PATH, 'fonts', 'Roboto', 'Roboto-Thin.ttf')
 SCALE = (35,10)
 
 def number_to_binary(number):
-    return '{0:08b}'.format(number)
+    return f'{number:08b}'
 
 def rgb_to_hex(rgb: tuple):
     r, g, b = rgb
-    hex = "#{:02x}{:02x}{:02x}".format(r,g,b)
-    return hex
+    return f'#{r:02x}{g:02x}{b:02x}'
+
 
 class Hex_Image():
     def __init__(self, img: Image, scale=SCALE, rescale=True):
@@ -34,8 +33,8 @@ class Hex_Image():
         return img
 
     def append_image_data(self, image_data: dict, pixel_coordinates: tuple):
-        rgb = img.getpixel(pixel_coordinates)
-        text_hex = f'{rgb_to_hex(rgb)}'
+        rgb = self.img.getpixel(pixel_coordinates)
+        text_hex = rgb_to_hex(rgb)
         image_data[pixel_coordinates] = {'rgb':rgb, 'hex': text_hex,}
         hex_img = self.hex_pixel_image(image_data, pixel_coordinates)
         image_data[pixel_coordinates]['img'] = hex_img
@@ -71,6 +70,6 @@ class Hex_Image():
         return new_img
 
 if __name__ == '__main__':
-    img = Image.open(os.path.join(IMG_PATH, 'random.png'))
+    img = Image.open(os.path.join(IMG_PATH, 'bad_smile.png'))
     hex_img = Hex_Image(img, rescale=False)
     hex_img.new_image().show()

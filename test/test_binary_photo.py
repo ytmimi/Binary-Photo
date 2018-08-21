@@ -14,7 +14,6 @@ class Test_Nummber_to_Binary:
     def test_input_255(self):
         assert number_to_binary(255) == '11111111'
 
-
 class Test_RGB_To_Hex:
     def test_red_to_hex(self):
         rgb = (255,0,0)
@@ -46,3 +45,7 @@ class Test_Resize_Img:
 
     def test_large_img(self, large_image):
         assert Hex_Image(large_image).img.size == (256, 256)
+
+
+if __name__ == '__main__':
+    pytest.main()

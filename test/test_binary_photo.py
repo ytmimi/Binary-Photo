@@ -7,6 +7,7 @@ from binary_photo import (VALID_OPTIONS, rgb_to_hex, number_to_binary,
 import pytest
 from unittest.mock import patch
 from PIL import Image
+from aggdraw import Draw
 
 
 @pytest.fixture(scope='module')
@@ -61,71 +62,145 @@ class Test_Negative_RGB:
         assert negative_rgb(rgb_colors['blue']) == (255, 255, 0)
 
 
-@pytest.fixture(scope='module')
-def small_image():
-    return Image.open(os.path.join(BASE_PATH, 'images', 'Red_Box.png'))
+@pytest.fixture(scope='function')
+def raw_images():
+    img1 = Image.open(os.path.join(BASE_PATH, 'images', 'Red_Box.png'))
+    img2 = Image.open(os.path.join(BASE_PATH, 'images', 'random.png'))
+    return {'small':img1, 'large':img2}
+
+
+#we don't want the get_img_data function to be called in the __init__ because
+#it will try to loop through each pixel of the provided image. Instead the
+#function is replaced with a lambda that returns an empty dict. This patch is
+#used several times throughout these tests
+#@patch('binary_photo.New_Image.get_img_data', lambda x: {})
 
 @pytest.fixture(scope='function')
-def large_image():
-    return Image.open(os.path.join(BASE_PATH, 'images', 'random.png'))
-
-#we don't want the get_img_data function to be called in the init because
-#it will try to loop through each pixel of the provided image. Instead the
-#function is replaced with a lambda that returns an empty dict
 @patch('binary_photo.New_Image.get_img_data', lambda x: {})
+def small_image(raw_images):
+    return New_Image(raw_images['small'])
+
+@pytest.fixture(scope='function')
+@patch('binary_photo.New_Image.get_img_data', lambda x: {})
+def large_image(raw_images):
+    return New_Image(raw_images['large'])
+
+
 class Test_Resize_Img:
-    def test_small_img(self, small_image):
-        assert New_Image(small_image).img.size == small_image.size
+    def test_small_img(self, small_image, raw_images):
+        assert small_image.img.size == raw_images['small'].size
 
     def test_large_img(self, large_image):
-        assert New_Image(large_image).img.size == (256, 256)
+        assert large_image.img.size == (256, 256)
 
-    def test_rescale_false(self, large_image):
-        image = New_Image(large_image, resize=False)
-        assert image.img.size == (640, 640)
+    @patch('binary_photo.New_Image.get_img_data', lambda x: {})
+    def test_resize_false(self, raw_images):
+        img = New_Image(raw_images['large'], resize=False)
+        assert img.img.size == (640, 640)
 
-
-@patch('binary_photo.New_Image.get_img_data', lambda x: {})
 class Test_Validators:
     def test_valid_background_color(self, small_image):
         for item in VALID_OPTIONS:
-            img = New_Image(small_image, background_color=item)
-            assert img.background_color == item
+            small_image.background_color = item
+            assert small_image.background_color == item
 
     def test_invalid_background_color(self, small_image):
         with pytest.raises(ValueError) as error:
-            New_Image(small_image, background_color='Red')
+            small_image.background_color = 'Red'
         assert str(error.value) == f'background_color must be one of the follow: {VALID_OPTIONS}'
 
     def test_valid_text_color(self, small_image):
         for item in VALID_OPTIONS:
-            img = New_Image(small_image, text_color=item)
-            assert img.text_color == item
+            small_image.text_color = item
+            assert small_image.text_color == item
 
     def test_invalid_text_color(self, small_image):
         with pytest.raises(ValueError) as error:
-            New_Image(small_image, text_color='Red')
+            small_image.text_color = 'Red'
         assert str(error.value) == f'text_color must be one of the follow: {VALID_OPTIONS}'
 
     def test_valid_tint(self, small_image):
-        img = New_Image(small_image, tint_factor=.25)
-        assert img.tint_factor == .25
+        small_image.tint_factor = .25
+        assert small_image.tint_factor == .25
 
     def test_invalid_tint(self, small_image):
         with pytest.raises(ValueError) as error:
-            New_Image(small_image, tint_factor=1.25)
+            small_image.tint_factor = 1.25
         assert str(error.value) == f'tint and shade values must be between 0 and 1'
 
     def test_valid_shade(self, small_image):
-        img = New_Image(small_image, shade_factor=.25)
-        assert img.shade_factor == .25
+        small_image.shade_factor= .25
+        assert small_image.shade_factor == .25
 
     def test_invalid_shade(self, small_image):
         with pytest.raises(ValueError) as error:
-            New_Image(small_image, shade_factor=1.25)
+            small_image.shade_factor = 1.25
         assert str(error.value) == f'tint and shade values must be between 0 and 1'
 
 
+@pytest.fixture(scope='module')
+def raw_pixel():
+    return Image.new('RGB', (1,1))
+
+@pytest.fixture(scope='module')
+@patch('binary_photo.New_Image.get_img_data', lambda x: {})
+def test_pixel(raw_pixel):
+    return New_Image(raw_pixel)
+
+class Test_New_Colors:
+    def test_set_text_tint(self, test_pixel):
+        color = (255, 0, 0)
+        test_pixel.text_color = 'tint'
+        assert test_pixel.new_txt_color(color) == (255, 63, 63)
+
+    def test_set_text_shade(self, test_pixel):
+        color = (255, 0, 0)
+        test_pixel.text_color = 'shade'
+        assert test_pixel.new_txt_color(color) == (191, 0, 0)
+
+    def test_set_text_negative(self, test_pixel):
+        color = (255, 0, 0)
+        test_pixel.text_color = 'negative'
+        assert test_pixel.new_txt_color(color) == (0, 255, 255)
+
+    def test_set_text_default(self, test_pixel):
+        color = (255, 0, 0)
+        test_pixel.text_color = ''
+        assert test_pixel.new_txt_color(color) == color
+
+    def test_set_background_tint(self, test_pixel):
+        color = (255, 0, 0)
+        test_pixel.background_color = 'tint'
+        assert test_pixel.new_bg_color(color) == (255, 63, 63)
+
+    def test_set_background_shade(self, test_pixel):
+        color = (255, 0, 0)
+        test_pixel.background_color = 'shade'
+        assert test_pixel.new_bg_color(color) == (191, 0, 0)
+
+    def test_set_background_negative(self, test_pixel):
+        color = (255, 0, 0)
+        test_pixel.background_color = 'negative'
+        assert test_pixel.new_bg_color(color) == (0, 255, 255)
+
+    def test_set_background_default(self, test_pixel):
+        color = (255, 0, 0)
+        test_pixel.background_color = ''
+        assert test_pixel.new_bg_color(color) == (255, 255, 255)
+
+
+
+@pytest.fixture
+def pixel_data():
+    return {
+        (0,0): {'rgb':(255,0,0), 'text':'#'}
+    }
+
+class Test_Create_New_Images:
+    def test_pixel_image(self, test_pixel, pixel_data):
+        new_img = test_pixel.pixel_image(pixel_data, (0,0))
+        #function returns a PIL image object
+        assert isinstance(new_img, Image.Image)
 
 
 
